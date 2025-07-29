@@ -142,10 +142,9 @@ def bfs(grafo, inicio):
         if nodo not in visitados:
             visitados.add(nodo)
             resultado.append(nodo)
-            vecinos = grafo.get(nodo, {})
-            for vecino in vecinos.keys():
+            if nodo in grafo: 
+                for vecino in grafo[nodo].keys():
                 if vecino not in visitados:
-                for vecino in grafo[nodo]:
                     cola.append(vecino)
     return resultado
 
@@ -158,8 +157,7 @@ def lugares_turisticos(arbol, nivel=0):
 
 arbol_Lugares={
     "Insular":{
-        "Galápagos":{},
-    },
+        "Galápagos":{}},
     "Costa":{
         "Esmeraldas":{},
         "Manta":{},
@@ -345,6 +343,7 @@ def administrador():
             agregar_lugar()
         elif opcion == "2":
             rutas = leer_rutas()
+            lista_rutas = []
             for origen in rutas:
                 for destino in rutas[origen]:
                     informacion = rutas[origen][destino]
