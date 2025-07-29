@@ -144,8 +144,8 @@ def bfs(grafo, inicio):
             resultado.append(nodo)
             if nodo in grafo: 
                 for vecino in grafo[nodo].keys():
-                if vecino not in visitados:
-                    cola.append(vecino)
+                    if vecino not in visitados:
+                        cola.append(vecino)
     return resultado
 
 #Estrucura de ARBOL
