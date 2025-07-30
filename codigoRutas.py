@@ -324,16 +324,35 @@ def administrador():
         opcion = input("Seleccione una opcion: ")
         
         if opcion == "1":
-            agregar_lugar()
-        elif opcion == "2":
-            rutas = leer_rutas()
-            puntos = []
+            print("\nMapa de ciudades turísticas conectadas:\n")
             for origen in rutas:
                 for destino in rutas[origen]:
-                    puntos.append((origen, destino, rutas[origen][destino]))
-            puntos = ordenamiento(puntos)#Ordenamiento burbuja
-            for origen, destino, info in puntos:
-                print(f"{origen} -> {destino} | Distancia: {info['distancia']} km | Costo: ${info['costo']}")
+                    info = rutas[origen][destino]
+                    print(f"{origen} -> {destino} | Distancia: {info['distancia']} km | Costo: ${info['costo']}")
+                    guardar = input("\n¿Desea guardar el mapa en un archivo? (s/n): ").lower()
+                    if guardar == 's':
+                        guardar_mapa_completo(rutas)
+         elif opcion=="2": 
+             ciudades_disponibles = list(rutas.keys())
+             for destinos in rutas.values():
+                 ciudades_disponibles.extend(destinos.keys())
+                 ciudades_unicas = list(set(ciudades_disponibles))
+                 ciudades_ordenadas = ordenamiento(ciudades_unicas)
+                 origen = input("Ciudad origen: ")
+                 destino = input("Ciudad destino: ")
+                 if busqueda(ciudades_ordenadas, origen) == -1:
+                     print(f"{origen} no existe en el mapa.")
+                     continue
+                 if busqueda(ciudades_ordenadas, destino) == -1:
+                     print(f"{destino} no existe en el mapa.")
+                     continue
+                 costo, camino = encontrar_ruta(rutas, origen, destino)
+                 if camino:
+                     print("Ruta óptima encontrada:")
+                     print(" -> ".join(camino))
+                     print(f"Costo total: ${costo}")
+                 else:
+                     print("No se encontró una ruta entre las ciudades seleccionadas.")
         elif opcion == "3":
             rutas = leer_rutas()
             ciudades = set()
