@@ -1,4 +1,5 @@
 import re
+import os
 import heapq
 from collections import deque
 
@@ -46,6 +47,22 @@ def iniciar_sesion():
     except FileNotFoundError: 
         print("Archivo de usuarios no encontrado.")
         return False, None
+
+def credenciales_administrador():
+    usuarioAdmin = "politours@admin.com"
+    claveAdmin = "Tours2025"
+    lineaAdmin = f"{usuarioAdmin},{claveAdmin},Admin,0000000000,99\n"
+
+    if not os.path.exists("usuarios.txt"):
+        with open("usuarios.txt", "w") as archivo:
+            archivo.write(lineaAdmin)
+    else:
+        with open("usuarios.txt", "r") as archivo:
+            lineas = archivo.readlines()
+        
+        if not any(usuarioAdmin == linea.strip().split(",")[0] for linea in lineas):
+            with open("usuarios.txt", "a") as archivo:
+                archivo.write(lineaAdmin)
 
 #Archivo rutas.txt
 
@@ -414,23 +431,25 @@ def cliente(user):
             break
          
 def main():
+    credenciales_administrador()
     while True:
         print("\n=== SISTEMA DE RUTAS TURISTICAS ===")
         print("1. Registro.")
         print("2. Inicio de sesion")
         print("3. Salir")
-        op = input("Opcion: ")
+        opcion = input("Opcion: ")
 
-        if op == "1":
+        if opcion == "1":
             registrar_usuario()
-        elif op == "2":
-            ok, usuario = iniciar_sesion()
+        elif opcion == "2":
+            ok, usuario, clave = iniciar_sesion()
             if ok:
-                if usuario == "admin@poli.com":
+                if usuario == "politours@admin.com" and clave == "Tours2025":
+                    print("Inicio de secion exitoso. Bienvenido Administrador.")
                     administrador()
                 else:
                     cliente(usuario)
-        elif op == "3":
+        elif opcion == "3":
             print("Gracias por usar nuestro sistema.")
             break
 
