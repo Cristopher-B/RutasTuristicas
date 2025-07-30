@@ -1,4 +1,5 @@
 import re
+import os
 import heapq
 from collections import deque
 
@@ -39,15 +40,32 @@ def iniciar_sesion():
                 datos = linea.strip().split(",")
                 if datos[0] == usuario and datos[1] == clave:
                     print("Inicio de sesion exitoso.")
-                    return True, usuario
+                    return True, usuario, clave
         print("Credenciales incorrectas.")
-        return False, None
+        return False, None, None
 
     except FileNotFoundError: 
         print("Archivo de usuarios no encontrado.")
-        return False, None
+        return False, None, None
 
-#Archivo rutas.txt
+def credenciales_administrador():
+    usuarioAdmin = "politours@admin.com"
+    claveAdmin = "Tours2025"
+    lineaAdmin = f"{usuarioAdmin},{claveAdmin},Admin,0000000000,99\n"
+
+    if not os.path.exists("usuarios.txt"):
+        with open("usuarios.txt", "w") as archivo:
+            archivo.write(lineaAdmin)
+    else:
+        with open("usuarios.txt", "r") as archivo:
+            lineas = archivo.readlines()
+        
+        if not any(usuarioAdmin == linea.strip().split(",")[0] for linea in lineas):
+            with open("usuarios.txt", "a") as archivo:
+                archivo.write(lineaAdmin)
+
+
+#Para menu del administrador.
 
 def leer_rutas():
     rutas = {}
@@ -65,7 +83,6 @@ def leer_rutas():
         print("Archivo de rutas no encontrado.")
         return {}
 
-#guardar txt
 def guardar_rutas(rutas):
     with open("rutas.txt", "w") as archivo:
         for origen in rutas:
@@ -75,19 +92,66 @@ def guardar_rutas(rutas):
                 archivo.write(f"{origen},{destino},{distancia},{costo}\n")
     print("Rutas guardadas exitosamente")
 
-# ordenamiento burbuja 
-def ordenamiento(lista):
-    n = len(lista)
+def agregar_lugar():
+    origen = input("Ciudad de origen: ")
+    destino = input("Ciudad de destino: ")
+    distancia = input("Distancia en (km): ")
+    costo= input("Precio $: ")
+
+    with open("rutas.txt", "a") as archivo:
+        archivo.write(f"{origen},{destino},{distancia},{costo}\n")
+    print("Lugar agregado con exito")
+
+def actualizar_ciudad():
+    rutas = leer_rutas()
+    origen = input("Ciudad de origen a actualizar: ")
+    destino = input("Ciudad de destino a actualizar: ")
+    
+    if origen in rutas and destino in rutas[origen]:
+        nueva_distancia = float(input("Nueva distancia (km): "))
+        nuevo_costo = float(input("Nuevo costo ($): "))
+        
+        rutas[origen][destino]["distancia"] = nueva_distancia
+        rutas[origen][destino]["costo"] = nuevo_costo
+        
+        guardar_rutas(rutas)
+        print("Ciudad actualizada con exito.")
+    else:
+        print("Ruta no encontrada.")
+
+def eliminar_ciudad():
+    rutas = leer_rutas()
+    origen = input("Ciudad de origen a eliminar: ")
+    destino = input("Ciudad de destino a eliminar: ")
+    
+    if origen in rutas and destino in rutas[origen]:
+        del rutas[origen][destino]
+        if not rutas[origen]:
+            del rutas[origen]
+        guardar_rutas(rutas)
+        print("Ruta eliminada con éxito.")
+    else:
+        print("Ruta no encontrada.")
+
+#Burbuja
+def ordenamiento(puntos):
+    n = len(puntos)
     for i in range(n):
-        for j in range (0, n-i-1):
-            if lista[j] > lista[j+1]:
-                lista[j], lista[j+1] = lista[j+1], lista[j]
-    return lista 
-#busqueda lineal
+        for j in range(0, n - i - 1):
+            if puntos[j][0] > puntos[j + 1][0]:  # compara por ciudad origen
+                puntos[j], puntos[j + 1] = puntos[j + 1], puntos[j]
+    return puntos
+#busqueda binaria
 def busqueda(lista, elemento):
-    for i, item in enumerate(lista):
-        if item == elemento:
-            return i 
+    izquierda, derecha = 0, len(lista) - 1
+    while izquierda <= derecha:
+        medio = (izquierda + derecha) // 2
+        if lista[medio] == elemento:
+            return medio
+        elif lista[medio] < elemento:
+            izquierda = medio + 1
+        else:
+            derecha = medio - 1
     return -1
 #revisar algoritmo dijkstra
 def dijkstra(grafo, inicio, destino):
@@ -108,7 +172,7 @@ def dijkstra(grafo, inicio, destino):
                     distancias[vecino] = nueva_distancia
                     padres[vecino] = nodo_actual
                     heapq.heappush(cola, (nueva_distancia, vecino))
-#Especificar el camino
+
     camino = []
     nodo_actual = destino
     while nodo_actual is not None:
@@ -121,33 +185,14 @@ def encontrar_ruta(grafo, inicio, destino):
     grafo_dijkstra ={}
     for origen in grafo:
         if origen not in grafo_dijkstra:
-            grafo_dijkstra[origen] =[]
+            grafo_dijkstra[origen] = []
         for dest, datos in grafo[origen].items():
             grafo_dijkstra[origen].append((dest, datos['costo']))
             if dest not in grafo_dijkstra:
                 grafo_dijkstra[dest] = []
     if inicio not in grafo_dijkstra or destino not in grafo_dijkstra:
         return float('inf'), []
-    
-    distancia, camino = dijkstra(grafo_dijkstra, inicio, destino)
-    return distancia, camino
-#BFS
-def bfs(grafo, inicio):
-    visitados = set()
-    cola = deque([inicio])
-    resultado = []
-
-    while cola:
-        nodo = cola.popleft()
-        if nodo not in visitados:
-            visitados.add(nodo)
-            resultado.append(nodo)
-            vecinos = grafo.get(nodo, {})
-            for vecino in vecinos.keys():
-                if vecino not in visitados:
-                for vecino in grafo[nodo]:
-                    cola.append(vecino)
-    return resultado
+    return dijkstra(grafo_dijkstra, inicio, destino)
 
 #Estrucura de ARBOL
 def lugares_turisticos(arbol, nivel=0):
@@ -181,73 +226,9 @@ arbol_Lugares={
         "Puyo":{},
         "Tena":{},
     }
-}
-        
-def agregar_lugar():
-    origen = input("Ciudad de origen: ")
-    destino = input("Ciudad de destino: ")
-    distancia = input("Distancia en (km): ")
-    costo= input("Precio $: ")
+}###Fin de menu admin
 
-    with open("rutas.txt", "a") as archivo:
-        archivo.write(f"{origen},{destino},{distancia},{costo}\n")
-    print("Lugar agregado con exito")
-def consultar_ciudad():
-    rutas = leer_rutas()
-    ciudad_buscar = input("Ingrese la ciudad a consultar: ")  
-    ciudades = []
-    for origen in rutas:
-        if origen not in ciudades:
-            ciudades.append(origen)
-        for destino in rutas[origen]:
-            if destino not in ciudades:
-                ciudades.append(destino)
-    
-    ciudades = ordenamiento(ciudades)
-    indice = busqueda(ciudades, ciudad_buscar)
-    
-    if indice != -1:
-        print(f"\nCiudad encontrada: {ciudad_buscar}")
-        print("Rutas desde esta ciudad:")
-        if ciudad_buscar in rutas:
-            for destino in rutas[ciudad_buscar]:
-                info = rutas[ciudad_buscar][destino]
-                print(f"  {destino}  Distancia: {info['distancia']} km  Costo: ${info['costo']}")
-    else:
-        print("Ciudad no encontrada.")
-#Actualizar
-def actualizar_ciudad():
-    rutas = leer_rutas()
-    origen = input("Ciudad de origen a actualizar: ")
-    destino = input("Ciudad de destino a actualizar: ")
-    
-    if origen in rutas and destino in rutas[origen]:
-        nueva_distancia = float(input("Nueva distancia (km): "))
-        nuevo_costo = float(input("Nuevo costo ($): "))
-        
-        rutas[origen][destino]["distancia"] = nueva_distancia
-        rutas[origen][destino]["costo"] = nuevo_costo
-        
-        guardar_rutas(rutas)
-        print("Ciudad actualizada con exito.")
-    else:
-        print("Ruta no encontrada.")
-
-def eliminar_ciudad():
-    rutas = leer_rutas()
-    origen = input("Ciudad de origen a eliminar: ")
-    destino = input("Ciudad de destino a eliminar: ")
-    
-    if origen in rutas and destino in rutas[origen]:
-        del rutas[origen][destino]
-        if len(rutas[origen]) == 0:
-            del rutas[origen]
-        
-        guardar_rutas(rutas)
-        print("Ruta eliminada con exito.")
-    else:
-        print("Ruta no encontrada.")
-#clientes
+#Menu de clientes
 ciudades_seleccionadas = []
 
 def seleccionar_ciudades():
@@ -341,19 +322,38 @@ def administrador():
         print("6. Guardar ciudades turisticos en archivo .txt.")
         print("7. Salir.")
         opcion = input("Seleccione una opcion: ")
+        
         if opcion == "1":
             agregar_lugar()
         elif opcion == "2":
             rutas = leer_rutas()
+            puntos = []
             for origen in rutas:
                 for destino in rutas[origen]:
-                    informacion = rutas[origen][destino]
-                    print(f"{origen}  {destino}  Distancia: {informacion['distancia']} km  Costo: ${informacion['costo']}")
-            listas_rutas = ordenamiento(listas_rutas)
-            for ruta in listas_rutas:
-                print(ruta)
+                    puntos.append((origen, destino, rutas[origen][destino]))
+            puntos = ordenamiento(puntos)#Ordenamiento burbuja
+            for origen, destino, info in puntos:
+                print(f"{origen} -> {destino} | Distancia: {info['distancia']} km | Costo: ${info['costo']}")
         elif opcion == "3":
-            consultar_ciudad()
+            rutas = leer_rutas()
+            ciudades = set()
+            for origen in rutas:
+                ciudades.add(origen)
+                ciudades.update(rutas[origen].keys())
+            ciudades = list(ciudades)
+            ciudades_ordenadas = ordenamiento(puntos)
+            ciudad = input("Ingrese ciudad a consultar: ")
+            pos = busqueda(ciudades_ordenadas,ciudad)
+            if pos != -1:
+                print(f"Ciudad encontrada: {ciudad}")
+                if ciudad in rutas:
+                    for dest in rutas[ciudad]:
+                        info = rutas[ciudad][dest]
+                        print(f"  -> {dest} | Distancia: {info['distancia']} km | Costo: ${info['costo']}")
+                else:
+                    print("No hay rutas salientes desde esta ciudad.")
+            else:
+                print("Ciudad no encontrada.")
         elif opcion == "4":
             actualizar_ciudad()
         elif opcion == "5":
@@ -362,22 +362,24 @@ def administrador():
             rutas = leer_rutas()
             guardar_rutas(rutas)
         elif opcion == "7":
-            break           
+            break
+        else:
+            print("Opción inválida.")
+
 #Menu del cliente       
 def cliente(user):
     rutas = leer_rutas()
     while True:
          print(f"\n---- MENU CLIENTE ({user}) ----")
          print("1. Ver mapa de ciudades turisticos conectados.")
-         print("2. Calcular ruta mas corta.")
-         print("3. Explorar ciudades.")
+         print("2. Consultar ruta mas corta.")
+         print("3. Explorar ciudades por region.")
          print("4. Seleccionar ciudades a visitar.")
          print("5. Ver lista de ciudades turisticos seleccionados.")
          print("6. Actualizar ciudades escogidos.")
          print("7. Eliminar ciudades escogidas.")
          print("8. Guardar la seleccion en archivo .txt.")
-         print("9. Explorar rutas cercanas. ")
-         print("10. Salir.")        
+         print("9. Salir.")        
          opcion = input("Opcion: ")
          if opcion == "1":
             for origen in rutas:
@@ -398,40 +400,36 @@ def cliente(user):
          elif opcion == "4":
              seleccionar_ciudades()
          elif opcion == "5":
-             actualizar_ciudades_seleccionadas()
+             listar_ciudades_seleccionadas()
          elif opcion == "6":
              actualizar_ciudades_seleccionadas()
          elif opcion == "7":
              eliminar_ciudades_seleccionadas()
          elif opcion == "8":
              guardar_seleccion_cliente(user)
-         elif opcion == "9": 
-             ciudad_inicio = input("Ciudad de inicio para BFS: ")
-             alcanzables = bfs(rutas, ciudad_inicio)
-             print(f"Ciudades alcanzables desde {ciudad_inicio}:")
-             for ciudad in alcanzables:
-                print(f" - {ciudad}")
-         elif opcion == "10":
+         elif opcion == "9":
             break
          
 def main():
+    credenciales_administrador()
     while True:
         print("\n=== SISTEMA DE RUTAS TURISTICAS ===")
         print("1. Registro.")
         print("2. Inicio de sesion")
         print("3. Salir")
-        op = input("Opcion: ")
+        opcion = input("Opcion: ")
 
-        if op == "1":
+        if opcion == "1":
             registrar_usuario()
-        elif op == "2":
-            ok, usuario = iniciar_sesion()
+        elif opcion == "2":
+            ok, usuario, clave = iniciar_sesion()
             if ok:
-                if usuario == "admin@poli.com":
+                if usuario == "politours@admin.com" and clave == "Tours2025":
+                    print("Bienvenido Administrador.")
                     administrador()
                 else:
                     cliente(usuario)
-        elif op == "3":
+        elif opcion == "3":
             print("Gracias por usar nuestro sistema.")
             break
 
