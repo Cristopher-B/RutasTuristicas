@@ -73,8 +73,8 @@ def leer_rutas():
         with open("rutas.txt", "r") as archivo:
             for linea in archivo:
                 origen, destino, distancia, costo = linea.strip().split(",")
-                distancia = float(distancia)
-                costo = float(costo)
+                distancia = float(distancia.replace("km", "").strip())
+                costo = float(costo.replace("$", "").strip())
                 if origen not in rutas:
                     rutas[origen] = {}
                 rutas[origen][destino] = {"distancia": distancia, "costo": costo}
@@ -89,7 +89,7 @@ def guardar_rutas(rutas):
             for destino in rutas[origen]:
                 distancia = rutas[origen][destino]["distancia"]
                 costo = rutas[origen][destino]["costo"]
-                archivo.write(f"{origen},{destino},{distancia},{costo}\n")
+                archivo.write(f"{origen},{destino},{distancia}km,${costo}\n")
     print("Rutas guardadas exitosamente")
 
 def agregar_lugar():
