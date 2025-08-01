@@ -1,9 +1,7 @@
-import re
-import os
 import heapq
 from collections import deque
 
-#Inicio de sesion.
+
 def validar_contraseña(contraseña):
     tiene_mayuscula = any(c.isupper() for c in contraseña)
     tiene_minuscula = any(c.islower() for c in contraseña)
@@ -14,7 +12,7 @@ def registrar_usuario():
     nombre = input("Ingrese su nombre y apellido: ")
     identificacion = input("Ingrese su identificación: ")
     edad = input("Ingrese su edad: ")
-    usuario = input("Ingrese su correo (formato nombre.apellido@gmail.com): ")
+    usuario = input("Ingrese su correo: ")
     while True:
         contraseña = input("Ingrese su contraseña segura: ")
         if validar_contraseña(contraseña):
@@ -23,23 +21,23 @@ def registrar_usuario():
             print("La contraseña debe tener al menos una mayúscula, una minúscula y un número.")
 
     with open("usuarios.txt", "a") as archivo:
-        archivo.write(f"{nombre},{identificacion},{edad},{usuario},{contraseña},cliente\n")
+        archivo.write(f"{nombre},{identificacion},{edad},{usuario},{contraseña}\n")
     print("Usuario registrado correctamente.\n")
 
 def iniciar_sesion():
-    usuario = input("Usuario: ")
+    usuario = input("Correo: ")
     contraseña = input("Contraseña: ")
     if usuario == "politours@admin.com" and contraseña == "Tours2025":
         print("Inicio de sesión como administrador exitoso.\n")
-        return usuario, "admin"
+        return usuario
     with open("usuarios.txt", "r") as archivo:
         for linea in archivo:
             datos = linea.strip().split(",")
-            if len(datos) >= 6 and datos[3] == usuario and datos[4] == contraseña:
+            if datos[3] == usuario and datos[4] == contraseña:
                 print("Inicio de sesión exitoso.\n")
-                return usuario.split("@")[0], datos[5]
-    print("Credenciales incorrectas.\n")
-    return None, None
+                return usuario.split("@")[0]
+    print("Credenciales incorrectas.Intente de nuevo\n")
+    return None
 
 def leer_rutas():
     rutas = {}
@@ -47,8 +45,8 @@ def leer_rutas():
         with open("rutas.txt", "r") as archivo:
             for linea in archivo:
                 origen, destino, distancia, costo = linea.strip().split(',')
-                distancia = int(distancia.replace("km", ""))
-                costo = int(costo.replace("$", ""))
+                distancia = float(distancia.replace("km", ""))
+                costo = float(costo.replace("$", ""))
                 if origen not in rutas:
                     rutas[origen] = {}
                 rutas[origen][destino] = {"distancia": distancia, "costo": costo}
@@ -92,26 +90,25 @@ def busqueda_lineal(lista, elemento):
             return i
     return -1
 
-def construir_arbol():
-    return {
-        "Sierra": {
-            "Quito": {},
-            "Riobamba": {}
-        },
-        "Costa": {
-            "Guayaquil": {},
-            "Manta": {}
-        },
-        "Amazonía": {
-            "Tena": {},
-            "Puyo": {}
-        }
-    }
+arbol_lugares = {
+    "Sierra": {},
+    "Costa": {},
+    "Oriente": {}
+}
+
+def agregar_al_arbol(region, origen, destino, distancia, costo):
+    if region in arbol_lugares:
+        if origen not in arbol_lugares[region]:
+            arbol_lugares[region][origen] = {}
+        arbol_lugares[region][origen][destino] = {"distancia": distancia, "costo": costo}
 
 def imprimir_arbol(arbol, nivel=0):
     for zona, subzonas in arbol.items():
         print("  " * nivel + f"- {zona}")
-        imprimir_arbol(subzonas, nivel + 1)
+        if isinstance(subzonas, dict):
+            imprimir_arbol(subzonas, nivel + 1)
+        else:
+            print("  " * (nivel + 1) + str(subzonas))
 
 def cliente(usuario):
     rutas = leer_rutas()
@@ -130,6 +127,7 @@ def cliente(usuario):
         opcion = input("Seleccione una opción: ")
 
         if opcion == "1":
+            rutas = leer_rutas()
             for origen in rutas:
                 for destino in rutas[origen]:
                     datos = rutas[origen][destino]
@@ -145,11 +143,15 @@ def cliente(usuario):
                 print("No se encontró una ruta.")
 
         elif opcion == "3":
-            arbol = construir_arbol()
-            imprimir_arbol(arbol)
+            for region in arbol_lugares:
+                print(f"\nRegión: {region}")
+                for origen in arbol_lugares[region]:
+                    for destino in arbol_lugares[region][origen]:
+                        datos = arbol_lugares[region][origen][destino]
+                        print(f"{origen} -> {destino} | Distancia: {datos['distancia']} km | Costo: ${datos['costo']}")
 
         elif opcion == "4":
-            ciudad = input("Ingrese ciudad/punto turístico a visitar: ")
+            ciudad = input("Ingrese ciudad turística a visitar: ")
             seleccionadas.append(ciudad)
 
         elif opcion == "5":
@@ -200,36 +202,40 @@ def administrador():
         opcion = input("Seleccione una opción: ")
 
         if opcion == "1":
+            region = input("Región (Costa/Sierra/Oriente): ")
             origen = input("Ciudad origen: ")
             destino = input("Ciudad destino: ")
-            distancia = int(input("Distancia (km): "))
-            costo = int(input("Costo ($): "))
+            distancia = float(input("Distancia (km): "))
+            costo = float(input("Costo ($): "))
             if origen not in rutas:
                 rutas[origen] = {}
             rutas[origen][destino] = {"distancia": distancia, "costo": costo}
+            agregar_al_arbol(region, origen, destino, distancia, costo)
 
         elif opcion == "2":
-            ciudades = list(rutas.keys())
-            ordenadas = ordenamiento_burbuja(ciudades)
-            print("Ciudades ordenadas:")
-            for ciudad in ordenadas:
-                print(ciudad)
+            for origen in ordenamiento_burbuja(list(rutas.keys())):
+                for destino in rutas[origen]:
+                    datos = rutas[origen][destino]
+                    print(f"{origen} -> {destino} | Distancia: {datos['distancia']} km | Costo: ${datos['costo']}")
 
         elif opcion == "3":
             ciudad = input("Ciudad a buscar: ")
-            ciudades = list(rutas.keys())
-            pos = busqueda_lineal(ciudades, ciudad)
-            if pos != -1:
-                print(f"Ciudad encontrada: {ciudades[pos]}")
-            else:
-                print("No encontrada.")
+            encontrado = False
+            for origen in rutas:
+                if ciudad.lower() == origen.lower():
+                    for destino in rutas[origen]:
+                        datos = rutas[origen][destino]
+                        print(f"{origen} -> {destino} | Distancia: {datos['distancia']} km | Costo: ${datos['costo']}")
+                        encontrado = True
+            if not encontrado:
+                print("Ciudad no encontrada.")
 
         elif opcion == "4":
             origen = input("Ciudad origen a actualizar: ")
             destino = input("Ciudad destino: ")
             if origen in rutas and destino in rutas[origen]:
-                distancia = int(input("Nueva distancia (km): "))
-                costo = int(input("Nuevo costo ($): "))
+                distancia = float(input("Nueva distancia (km): "))
+                costo = float(input("Nuevo costo ($): "))
                 rutas[origen][destino] = {"distancia": distancia, "costo": costo}
             else:
                 print("Ruta no encontrada.")
@@ -255,7 +261,7 @@ def administrador():
         else:
             print("Opción inválida.")
 
-def main():
+def menu_principal():
     while True:
         print("\n--- Sistema de Rutas Turísticas ---")
         print("1. Registrarse")
@@ -267,21 +273,19 @@ def main():
         if opcion == "1":
             registrar_usuario()
         elif opcion == "2":
-            usuario, rol = iniciar_sesion()
-            if usuario and rol == "cliente":
+            usuario = iniciar_sesion()
+            if usuario and usuario != "politours@admin.com":
                 cliente(usuario)
-            elif rol != "cliente":
-                print("No tiene permisos de cliente.")
         elif opcion == "3":
-            usuario, rol = iniciar_sesion()
-            if usuario and rol == "admin":
+            print("Ingrese credenciales de administrador")
+            usuario = iniciar_sesion()
+            if usuario == "politours@admin.com":
                 administrador()
-            else:
-                print("Acceso denegado. Solo administradores autorizados.")
         elif opcion == "4":
-            print("Gracias por usar el sistema. ¡Hasta luego!")
+            print("Gracias por usar el sistema.")
             break
         else:
             print("Opción inválida.")
 
-main()
+
+menu_principal()
